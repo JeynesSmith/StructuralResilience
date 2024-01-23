@@ -1,4 +1,7 @@
 function [KnownMonomials,Monomials] = MonomialAnalysis(SaveNetworkName,GroebnerBasisEquations,lengthcombos)
+% this functions identifies all monomial terms and identifies their 
+% occurence in each groebner basis equation across all possible network 
+% combinations.
 
 % preallocate space
 KnownMonomials = GroebnerBasisEquations{1,2};
@@ -31,10 +34,12 @@ for i = 1:lengthcombos
         
     end
     
+    % display update
     disp([num2str(i/lengthcombos) '% equations analysed for monomials'])
     
 end
 
-eval(['save Monomials' SaveNetworkName ' KnownMonomials Monomials'])
+% save monomials
+eval(['save Data\Monomials' SaveNetworkName ' KnownMonomials Monomials'])
 
 end

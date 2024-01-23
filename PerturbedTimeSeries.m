@@ -1,7 +1,19 @@
-function [RPAquality] = PerturbedTimeSeriesV2(NotEmptySets,SavedParameterSets,FullEquation,EquationStarts,InputTargets,NumSpp,Species)
+function [RPAquality] = PerturbedTimeSeries(NotEmptySets,SavedParameterSets,FullEquation,EquationStarts,InputTargets,NumSpp,Species,RPASteadyStates)
+% this function is used to ensure the networks with perfect resilience also
+% have a valid form of RPA that is not trivial. This requires that the
+% target reacts to a change in stimuli and then returns to within some
+% accepted region of its original abundance. The stimulus is increase two
+% times, and the resposne of the output is measured relative to its
+% original abundance. If a parameter set results in a response which passes
+% the tests, then it is added to a sum, which is finally output as a
+% ratio of the NumberOfParameterSetsWithPass/TotalNumberofParameterSets for
+% each network. Later a check of RPAQuality>=0.1 is required for a network
+% to be accepted as not trivial RPA.
 
+% initialise
 RPAquality = zeros(size(NotEmptySets));
 
+% loop over networks
 for MainIndex = 1:length(NotEmptySets)
 % pick a set of equations
 index = NotEmptySets(MainIndex);
@@ -9,6 +21,7 @@ index = NotEmptySets(MainIndex);
 SInputs = [1 2 4]; % input different must be 1 i.e. (S(i+1)-S(i))/S(i)=1
 NumInputs = length(SInputs);
 
+% define equations and parameters
 rInd = EquationStarts';
 AInd = zeros(NumSpp); dInd = zeros(size(InputTargets));
 for i = 1:NumSpp
@@ -44,8 +57,8 @@ for j = 1:size(CurrentParaSets,1)
     A = reshape(CurrentParaSets(j,AInd),NumSpp,NumSpp); A(1:NumSpp+1:end) = A(1:NumSpp+1:end)*-1;
     d = zeros(NumSpp,1); d(InputTargets)=CurrentParaSets(j,dInd);
     
-    % run simulation (need init to be a feasible stable steady state)
-    uinit = FindInit(NumSpp,EquationStarts,NonZeroParas,Species,CurrentParaSets(j,:),SInputs(1),FullEquation,paras,r,A,d);
+    % run simulation 
+    uinit = RPASteadyStates{index}(j,:); disp(uinit), disp([r,d,A])
     [t,unew] = ode45(@(t,u) odesys(t,u,r,d,SInputs(1),A), time, uinit);
     uinit = unew(end,:);
     SimulationData = [t unew];
@@ -77,27 +90,4 @@ function eqn = odesys(t,u,r,d,S,A)
 u(u<0) = 0; u(u>100) = 100;
 if any(isnan(u)), keyboard, end
 eqn = (r+d.*S).*u + (A*u).*u;
-end
-
-% function for finding solution
-function InitSolution = FindInit(NumSpp,EquationStarts,NonZeroParas,Species,SingleParaSet,Sval,FullEquation,paras,r,A,d)
-% input: NumSpp,EquationStarts,NonZeroParas,Species,SingleParaSet (specific set not matrix),paras
-% output: InitSolution
-syms r1 r2 r3 r4 a11 a12 a13 a14 a21 a22 a23 a24 a31 a32 a33 a34 a41 a42 a43 a44 d1 d2 d3 d4 M N I S O
-
-CompleteSolution = struct2cell(solve((r+d*Sval) + A*Species', Species));
-CompiledSolution = zeros(length(CompleteSolution{1}),NumSpp);
-for i = 1:NumSpp
-    CompiledSolution(:,i) = double(CompleteSolution{i});
-end
-InitSolution = CompiledSolution(all(CompiledSolution>0),:);
-if size(InitSolution,1)>1
-    warning('More than one feasible solution')
-    InitSolution = InitSolution(1,:);
-end
-if isempty(InitSolution)
-    InitSolution = ones(1,NumSpp);
-    warning('No solution found')
-end
-
 end
