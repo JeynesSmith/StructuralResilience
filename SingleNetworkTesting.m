@@ -1,4 +1,15 @@
 %% Define the function
+% This function allows a user to analyse the capacity for perfect
+% resilience in a single network. A user must define the variables of the
+% network, the parameters, and the governing equations. In order for this
+% function to work the governing equations must be written in a polynomial
+% form, which may require some minor rearranging assuming that the system
+% is at steady state. After defining these intputs, the user does not need
+% to alter any other parts of the function in order to test perfect
+% resilience capacity. The only exception is that a user may want to reduce
+% the number of parameters used to test the quality of the RPA response.
+% In order to keep this function completely general, for any modelling
+% framework, the simulation of a network can take significant time.
 
 %% Define equations
 % define a save name
@@ -55,7 +66,7 @@ end
 % WARNING - this section can take considerable time in order to keep it
 % completely general for the type of equations used.
 if Pass == 1
-    NumberofParas = 2; % quick search
+    NumberofParas = 10; % quick search
     % NumberofParas = sum(Parameters(:,1)~=0); % extensive search
     RPAquality = CheckQuality(Parameters, NumberofParas,equations,paras,species,SteadyStates);
 else
